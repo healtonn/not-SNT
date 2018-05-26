@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 from model_bank import ModelBank
 
 
@@ -15,7 +16,7 @@ class MMAC:
     MAXIMAL_RECOMMENDED_DOSE = 600.0          # i_M -- 600 mikrogramu na kilo za hodinu, maximalni doporucena davka
     DRUG_CONCETRATION = 200.0          # C_s -- mikrogram/mililitr, koncentrace latky
 
-    V = 0.05             # TODO zjistit co presne to dela
+    V = 0.05             # parameter controlling the convergence rate of W_j' with R_j,
 
     PATIENT_WEIGHT = 80.0     # W_p -- vaha pacienta v kilogramech
 

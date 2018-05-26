@@ -12,6 +12,7 @@ class ModelBank:
 
 
 class Model:
+    # TODO WHITE GAUSSIAN NOISE - budeme asi potřebovat
     """
     Tato classa reprezentuje jeden model v model bance, podle obrazku 3
     """
@@ -26,6 +27,7 @@ class Model:
         self.delta = self.set_delta(model_number)
         print("startuju s parametrem ", self.G, " a deltou: ", self.delta)
 
+    # delta se má nastavovat na základě toho jak je daný model dobrý, ne takto na základě čísla, viz začátek kapitoly 3
     @staticmethod
     def set_delta(model_number):
         if model_number <= 2:
