@@ -1,19 +1,13 @@
-from numpy import linspace, dot, transpose, nan_to_num, squeeze, zeros, atleast_1d
+from numpy import linspace, dot, transpose, nan_to_num, squeeze, zeros, atleast_1d, ceil
 from scipy import integrate, interpolate
-from scipy.signal import lti, dlti, TransferFunction
+from scipy.signal import lti, dlti
 
-
-class TransferFunctionDelay(TransferFunction):
-    def __init__(self, inputdelay, *args, **kwargs):
-        super(TransferFunctionDelay, self).__init__(*args, **kwargs)
-        self.d = inputdelay
-
-
-def lsim3(system, U=None, T=None, X0=None, **kwargs):
+def lsim_d(system, inputdelay, stepsize, U=None, T=None, X0=None, **kwargs):
     """
     Metoda pro simulaci LTI s casovym spozdenim.
     Pouze jsem zkopiroval metodu lsim2 z oficialni implementace
-    a udelal na dvou mistech upravy aby bylo brano v potaz spozdeni
+    a udelal na par mistech upravy aby bylo brano v potaz spozdeni.
+    Bere o 2 argumenty vice, prvni je zpozdeni v sekundach a druhy velikost kroku
     https://github.com/scipy/scipy/blob/v1.1.0/scipy/signal/ltisys.py#L1745-L1853
     kopirovano dne: 26.05.2018
     """
@@ -24,7 +18,7 @@ def lsim3(system, U=None, T=None, X0=None, **kwargs):
                              'systems.')
     else:
         sys = lti(*system)._as_ss()
-    # delay = 50
+
     if X0 is None:
         X0 = zeros(sys.B.shape[0], sys.A.dtype)
 
@@ -35,6 +29,7 @@ def lsim3(system, U=None, T=None, X0=None, **kwargs):
     if len(T.shape) != 1:
         raise ValueError("T must be a rank-1 array.")
 
+    delay = int(ceil(inputdelay / stepsize))
     if U is not None:
         U = atleast_1d(U)
         if len(U.shape) == 1:
@@ -55,7 +50,7 @@ def lsim3(system, U=None, T=None, X0=None, **kwargs):
 
         def fprime(x, t, sys, ufunc):
             """The vector field of the linear system."""
-            return dot(sys.A, x) + squeeze(dot(sys.B, nan_to_num(ufunc([t]))))
+            return dot(sys.A, x) + squeeze(dot(sys.B, nan_to_num(ufunc([t-delay]))))
 
         xout = integrate.odeint(fprime, X0, T, args=(sys, ufunc), **kwargs)
         yout = dot(sys.C, transpose(xout)) + dot(sys.D, transpose(U))
