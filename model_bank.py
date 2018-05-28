@@ -1,38 +1,52 @@
 #!/usr/bin/env python3
+import math
+
+import numpy as np
+
+from patient import Patient
 
 
-class ModelBank:
+class Model_bank:
     """
     Model banka, obsahujici vsech 7 modelu paciantu
     """
     MODEL_GAIN = [0.33, 0.62, 1.15, 2.10, 3.69, 6.06, 9.03]
+    INFUSION_DELAY = [50, 50, 50, 50, 50, 50, 50]
+    V = 0.05    # dle clanku
 
-    def __init__(self):
-        self.model_bank = [Model(self.MODEL_GAIN[model_number], model_number) for model_number in range(len(self.MODEL_GAIN))]
+    def __init__(self, start_pressure, steps_in_1s, t):
+        self.start_pressure = start_pressure
+        self.t = t
+        self.model_bank = [Patient(self.MODEL_GAIN[model_number], self.INFUSION_DELAY[model_number], start_pressure, steps_in_1s)
+                           for model_number in range(len(self.MODEL_GAIN))]
+        for patient in self.model_bank:
+            patient.transfer_function_init(t)
 
+        self.P_m = np.empty((len(self.t), len(self.model_bank)))
+        self.R_j = np.empty_like(self.P_m)
+        self.W_j1 = np.empty_like(self.P_m)
+        self.W_num = np.zeros(len(self.MODEL_GAIN))
 
-class Model:
-    # TODO WHITE GAUSSIAN NOISE - budeme asi potřebovat
-    """
-    Tato classa reprezentuje jeden model v model bance, podle obrazku 3
-    """
-    ALPHA = 0.5     # fraction of SNP recirculated
-    t_1 = 50.0      # time constant of SNP action in seconds
-    t_2 = 10.0      # time constant for flow through pulmonary circulation in seconds
-    t_3 = 30.0      # time constant for flow through systemic circulation in seconds
-    T = 50.0        # infusion delay in seconds
+        for j in range(len(self.MODEL_GAIN)):
+            self.P_m[0, j] = start_pressure
+            self.R_j[0, j] = 0
+            self.W_j1[0, j] = 1
 
-    def __init__(self, plant_gain, model_number):
-        self.G = plant_gain
-        self.delta = self.set_delta(model_number)
-        print("startuju s parametrem ", self.G, " a deltou: ", self.delta)
+    def sim_step(self, u, i, P_a, P_d):
 
-    # delta se má nastavovat na základě toho jak je daný model dobrý, ne takto na základě čísla, viz začátek kapitoly 3
-    @staticmethod
-    def set_delta(model_number):
-        if model_number <= 2:
-            return 0.01
-        elif model_number <= 4:
-            return 0.002
-        else:
-            return 0.0004
+        for j in range(len(self.MODEL_GAIN)):
+            # simulacni krok vsech pacientu v model bank
+            self.P_m[i, j] = self.model_bank[j].sim_step(u, i)
+            # rovnice 8
+            self.R_j[i, j] = (self.P_m[i, j] - P_a) / (self.start_pressure - P_d)
+            # vypocet citatele v rovnice 5
+            self.W_num[j] = (math.exp(math.pow(self.R_j[i, j], 2) *(-1) / 2 * math.pow(self.V, 2)) * self.W_j1[i-1, j])
+
+        # vypocet jmenovatele v rovnice 5
+        W_den = np.sum(self.W_num, dtype=np.double)
+        for j in range(len(self.MODEL_GAIN)):
+            # rovnice 5
+            if(W_den != 0):
+                self.W_j1[i, j] = self.W_num[j] / W_den
+            else:
+                self.W_j1[i, j] = self.W_num[j]

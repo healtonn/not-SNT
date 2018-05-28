@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from model_bank import ModelBank
+from model_bank import Model_bank
 from patient import Patient
 from pid_controller import Pid
 
@@ -24,7 +24,7 @@ class MMAC():
     DESIRED_BLOOD_PRESSURE = 50.0       # P_d -- pozadovany tlak pacienta
     MINIMAL_BLOOD_PRESSURE = DESIRED_BLOOD_PRESSURE - 20.0      # P_l -- minimalni tlak pacienta
 
-    MAXIMAL_RECOMMENDED_DOSE = 60.0          # i_M -- 600 mikrogramu na kilo za sekundu, maximalni doporucena davka
+    MAXIMAL_RECOMMENDED_DOSE = 60.0          # i_M -- 60 mikrogramu na kilo za minutu, maximalni doporucena davka
     DRUG_CONCETRATION = 200.0          # C_s -- mikrogram/mililitr, koncentrace latky
 
     V = 0.05             # parameter controlling the convergence rate of W_j' with R_j,
@@ -32,6 +32,11 @@ class MMAC():
     PATIENT_WEIGHT = 80.0     # W_p -- vaha pacienta v kilogramech
 
     def controll_loop(self, change_pressure_time):
+        """
+        smycka simulace
+        :param change_pressure_time: cas v, kterem se ma menit pozadavek pozadovany tlak z
+            DESIRED_BLOOD_PRESSURE_MIDDLE_STEP na DESIRED_BLOOD_PRESSURE
+        """
         time_of_sim_s = 1200  # delka simulace v 1200s = 20min
         steps_in_1s = 1  # kolik kroku simulace se provede v jedne sekunde
         sim_steps = (time_of_sim_s + 1) * steps_in_1s  # pocet kroku simulace
@@ -39,7 +44,7 @@ class MMAC():
         t = np.linspace(0, time_of_sim_s, sim_steps)  # jednotlive kroky simulace
         delta_t = t[1] - t[0]
 
-        # Maximalni povolene davkovani. Musim prepocitat davku na zaklade kroku simulace
+        # rovnice 3, Maximalni povolene davkovani. Musim prepocitat davku na zaklade kroku simulace
         self.U_M = self.PATIENT_WEIGHT * self.MAXIMAL_RECOMMENDED_DOSE / steps_in_1s * (1.0 / self.DRUG_CONCETRATION)
 
         # v desire_p je prubeh pozadovaneho tlaku
@@ -47,6 +52,7 @@ class MMAC():
         desire_p = np.full_like(t, self.DESIRED_BLOOD_PRESSURE_MIDDLE_STEP)
         desire_p[change_desire_pressure_steps: ] = self.DESIRED_BLOOD_PRESSURE
 
+        # vytvoreni pacienta
         p_a = self.STARTING_BLOOD_PRESSURE
         patient = Patient(2.1, 50, self.STARTING_BLOOD_PRESSURE, steps_in_1s)
         patient.transfer_function_init(t)
@@ -55,6 +61,9 @@ class MMAC():
         pid = Pid(2.0, 10.0, 0, desire_p)
         pid.init_pid(t, delta_t, self.U_M, self.STARTING_BLOOD_PRESSURE)
 
+        # inicializace model bank
+        model_bank = Model_bank(self.STARTING_BLOOD_PRESSURE, steps_in_1s, t)
+
         for i in range(0, sim_steps-1):
             u_c = pid.sim_step(i)
             # block F2 je zakomponovan v pid a je predrazen blocku F1, coz nevadi
@@ -62,6 +71,8 @@ class MMAC():
             u = self.low_pressure_check(p_a, u_c, desire_p[i])
             if i >= 1:
                 p_a = patient.sim_step(u, i)
+                # model_bank.sim_step(u, i, p_a, desire_p[i])
+
             pid.set_new_pv(i, p_a)
 
         pid.op[sim_steps-1] = pid.op[sim_steps-2]   #oprava posledni velici
@@ -88,7 +99,8 @@ class MMAC():
         plt.show()
 
     def limit_actual_infusion_rate(self, u_d):
-        """ omezi infuzi do intervalu <0, U_M>, tak jak je spefikovano v rovnici 2, pro stanoveni "u"
+        """
+        omezi infuzi do intervalu <0, U_M>, tak jak je spefikovano v rovnici 2, pro stanoveni "u"
         :return: return u
         """
         if u_d < 0.0:
@@ -99,7 +111,9 @@ class MMAC():
             return self.U_M
 
     def low_pressure_check(self, P_a, u_c, P_d):
-        """ Turn off drug infusion rate if patients blood pressure drops too low
+        """
+        Turn off drug infusion rate if patients blood pressure drops too low
+        equation 1
         :param P_a: actual patient pressure
         :param u_c: infusion rate before low blood pressure check
         :param P_d: desired pressure.

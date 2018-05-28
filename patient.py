@@ -110,6 +110,5 @@ if __name__ == "__main__":
     patient.transfer_function_init(t)
     for i in range(1, sim_steps):
         patient.sim_step(u[i], i)
-        # patient.get_pressure(i)      #vrati tlak pacienta v kroku i
 
     patient.plot_patient_pressure()
