@@ -24,7 +24,7 @@ class MMAC():
     DESIRED_BLOOD_PRESSURE = 50.0       # P_d -- pozadovany tlak pacienta
     MINIMAL_BLOOD_PRESSURE = DESIRED_BLOOD_PRESSURE - 20.0      # P_l -- minimalni tlak pacienta
 
-    MAXIMAL_RECOMMENDED_DOSE = 60.0          # i_M -- 60 mikrogramu na kilo za minutu, maximalni doporucena davka
+    MAXIMAL_RECOMMENDED_DOSE = 60.0          # i_M -- 60 mikrogramu na kilo za hodinu, maximalni doporucena davka
     DRUG_CONCETRATION = 200.0          # C_s -- mikrogram/mililitr, koncentrace latky
 
     V = 0.05             # parameter controlling the convergence rate of W_j' with R_j,
@@ -85,17 +85,17 @@ class MMAC():
         plt.figure(1)
 
         plt.subplot(2, 1, 1)
-        plt.plot(t, sp, 'k-', linewidth=1, label='Set Point (SP)')
-        plt.plot(t, pv, 'b--', linewidth=1, label='Process Variable (PV)')
+        plt.plot(t, sp, 'k-', linewidth=1, label='Požadovaný tlak')
+        plt.plot(t, pv, 'b--', linewidth=1, label='Tlak pacienta')
         plt.legend(loc='best')
-        plt.ylabel('Process Output')
+        plt.ylabel('krevní tlak (mmHg)')
 
         plt.subplot(2, 1, 2)
-        plt.plot(t, op, 'r:', linewidth=1, label='Controller Output (OP)')
+        plt.plot(t, op, 'r-', linewidth=1)
         plt.legend(loc='best')
-        plt.ylabel('Process Input')
+        plt.ylabel('SNP (ml/hr)')
 
-        plt.xlabel('Time')
+        plt.xlabel('Time (s)')
         plt.show()
 
     def limit_actual_infusion_rate(self, u_d):
