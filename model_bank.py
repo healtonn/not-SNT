@@ -25,6 +25,7 @@ class Model_bank:
         self.P_m = np.empty((len(self.t), len(self.model_bank)))
         self.R_j = np.empty_like(self.P_m)
         self.W_j1 = np.empty_like(self.P_m)
+        self.W_j = np.empty_like(self.P_m)
         self.W_num = np.zeros(len(self.MODEL_GAIN))
 
         for j in range(len(self.MODEL_GAIN)):
@@ -50,3 +51,12 @@ class Model_bank:
                 self.W_j1[i, j] = self.W_num[j] / W_den
             else:
                 self.W_j1[i, j] = self.W_num[j]
+
+        # vypocet jmenovatele v rovnice 7
+        W_j_den = np.sum(self.W_j1[i], dtype=np.double)
+        for j in range(len(self.MODEL_GAIN)):
+            # rovnice 7
+            if (W_j_den != 0):
+                self.W_j[i, j] = self.W_j1[i, j] / W_j_den
+            else:
+                self.W_j[i, j] = self.W_j1[i, j]
