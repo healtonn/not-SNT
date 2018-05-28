@@ -60,6 +60,7 @@ class Patient:
         do instancni promenne y uklada chovani tlaku pacienta
         :param dose: mnozstvi davky podane pacientovi v kroku sim_step
         :param sim_step: zacina od 1
+        :return: tlak pacienta v aktualnim kroku
         """
         tspan = [self.time_points[sim_step - 1], self.time_points[sim_step]]
         dose2 = [dose, dose]
@@ -67,6 +68,8 @@ class Patient:
         self.y[sim_step + self.infusion_delay] = yout[1]
         self.p[sim_step + self.infusion_delay] = self.start_pressure - yout[1]
         self.x[sim_step + self.infusion_delay] = xout[1]
+
+        return self.p[sim_step + self.infusion_delay]
 
     def get_pressure(self, sim_step):
         """
@@ -103,7 +106,7 @@ if __name__ == "__main__":
     u[500:800] = 10.0
     u[801:] = 0.0
 
-    patient = Patient(2.1, 50, 100, steps_in_1s)
+    patient = Patient(2.1, 0, 100, steps_in_1s)
     patient.transfer_function_init(t)
     for i in range(1, sim_steps):
         patient.sim_step(u[i], i)
